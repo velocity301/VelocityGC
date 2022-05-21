@@ -1,1 +1,1 @@
-# VelocityGC
+Creating a gamecube controller with minimal input delay
