@@ -1,73 +1,35 @@
 #pragma once
+#include "VelocityGC.h"
 
-// #include other files here
+void VelocityGC::init(){
+    //cli();  //idk what this is
+    initCounter();
+    initBtns();
+    initLines();
+    align();
+}
+void VelocityGC::readWrite(){
+    readBtns();
+    readCmd();
+    write();
+}
 
-struct Buttons{
-    //uint8_t arr[10]; ask about this line probably just for union
-    //byte 0
-    uint8_t A : 1;
-    uint8_t B : 1;
-    uint8_t X : 1;
-    uint8_t Y : 1;
-    uint8_t S : 1;
-    uint8_t orig : 1;
-    uint8_t errL : 1;
-    uint8_t errS : 1;
+// sets up cpu cycle counter register make sure to check this for teensy 3.2
+void VelocityGC::initCounter(){
+    {
+        ARM_DEMCR |= ARM_DEMCR_TRCENA;
+        ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCTENA;
+    }
+}
 
-    //byte 1
-    uint8_t Du : 1;
-    uint8_t Dd : 1;
-    uint8_t Dl : 1;
-    uint8_t Dr : 1;
-    uint8_t L : 1;
-    uint8_t R : 1;
-    uint8_t Z : 1;
-    uint8_t high : 1;
-
-    //byte 2-7
-    uint8_t Ax : 8;
-    uint8_t Ay : 8;
-    uint8_t Cx : 8;
-    uint8_t Cy : 8;
-    uint8_t La : 8;
-    uint8_t Ra : 8;
-
-    //these bytes are needed to make a response work
-    uint8_t magic1 : 8;
-    uint8_t magic2 : 8;
-}btn;
-
-struct ID {
-    uint8_t byt1 : 8;
-    uint8_t byt2 : 8;
-    uint8_t byt3 : 8;
-}id;
-
-struct CMD {
-    uint8_t command : 8;
-    uint8_t readmode : 8;
-    uint8_t rumbleInfo : 8;
-}cmd;
-
-class VelocityGC {
-    public: 
-            void init();
-            void readWrite();
-    private:
-            // sets up cpu cycle counter register make sure to check this for teensy 3.2
-            static void initCounter()
-            {
-                ARM_DEMCR |= ARM_DEMCR_TRCENA;
-                ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCTENA;
-            }
-
-           static void initGroup(uint8_t group)
-            {
-                for (uint8_t i = 0; i < 5; i++) {
-                    pinMode((i+group), INPUT_PULLUP); // this needs to be rewritten without groups
-                }   
-            }
-            void initBtns()
+void VelocityGC::initGroup(uint8_t group){
+    {
+        for (uint8_t i = 0; i < 5; i++) {
+            pinMode((i+group), INPUT_PULLUP); // this needs to be rewritten without groups
+        }   
+    }
+}
+void VelocityGC::initBtns()
             {
                 initGroup(GL); //needs to be rewritten without groups
                 initGroup(GM);
@@ -85,3 +47,201 @@ class VelocityGC {
                 pinMode(HP, INPUT_PULLUP);
 
             }
+
+// sets pin modes for gamecube controller data line
+void VelocityGC::initLines(){
+                pinMode(LINE, INPUT);   
+}    
+
+bool VelocityGC::readBit(){
+    while (digitalReadFast(LINE)) { 
+        //start of bit starts on falling edge
+    }
+    markCycle(); //record CPU cycle of falling edge
+    while(!digitalReadFast(LINE)) {
+        //bit value is determined by how long LINE is held LOW by the console
+    }
+    return elapsedCycles() < _halfbit;
+}
+
+// writes 1 bit to LINE
+// (assumes LINE is already OUTPUT)
+void VelocityGC::writeBit(bool /* bit to be written */){
+    markCycle();// record CPU cycle of the start of the bit
+    if (bt) {
+        digitalWriteFast(LINE, LOW);
+        while (elapsedCycles() < _quarterBit){
+            //hold Line Low for 1/4 (1us) of the bit
+        }
+        digitalWriteFast(LINE, HIGH);
+        while (elapsedCycles()< _oneBit) {
+            // hold LINE HIGH for the rest of the bit
+        }
+        return;
+        }
+    else{
+        digitalWriteFast(LINE,LOW);
+        while(elapsedCycles() < _threeqBit) {
+            // hold LINE LOW for 3/4 (3us) of the bit
+        }
+        digitalWriteFast(LINE,HIGH);
+        while (elapsedCycles() < _oneBit){
+            // hold LINE HIGH for the rest of the bit
+        }
+        return;
+    }
+}
+
+void VelocityGC::writeStop(){
+    markCycle();
+    digitalWriteFast(LINE,LOW);
+    while (elapsedCycles() < _halfBit) {
+        //hold LINE LOW for 1/2 (2us) of the bit
+    }
+    digitalWriteFast(LINE,HIGH);
+    while (elapsedCycles() < _halfBit){
+        //hold LINE HIGH for 1/2 (2us) of the bit
+    }
+    return;
+}
+
+// writes one byte to LINE (MSB order)
+// (assumes LINE is already OUTPUT)
+void VelocityGC::writeByte(uint8_t byt /* byte to be written*/) {
+    for (uint8_t i = 0; i < 8; i++) 
+    {
+        writeBit(byt & 0x80u);
+        byt <<= 1;
+    }
+}
+
+void VelocityGC::align(){
+    uint16_t buffer=0xffff;
+    delay(100);
+    while (buffer!=0b0000001000000001) {
+        buffer = (buffer << 1) | readBit();
+    }
+}
+
+// attempts to read a console command from LINE
+// one cmd will either be 8bits or 24bits (not including stop bit)
+// returns the first byte of the command
+// stores entire command in the cmd struct
+// sets LINE to pinmode INPUT
+void VelocityGC::readCmd(){
+    pinMode(LINE, INPUT);
+		for (uint8_t i = 0; i < 8; i++) {
+			cmd.command = (cmd.command << 1) | readBit();
+		}
+		if (cmd.command==0x41||cmd.command==0x00||cmd.command == 0xff) {			// stop bit
+			readBit();			// stop bit
+			return;
+		}
+		else {
+			for (uint8_t i = 0; i < 8; i++) {
+				cmd.readmode = (cmd.readmode << 1) | readBit();
+			}
+			for (uint8_t i = 0; i < 8; i++) {
+				cmd.rumbleInfo = (cmd.rumbleInfo << 1) | readBit();
+			}
+			readBit();			// stop bit
+			return;
+		}
+}
+
+// writes a response to LINE based on the contents of cmd
+void VelocityGC::write(){
+    pinMode(LINE, OUTPUT);
+
+		// read cmd
+		if (cmd.command == 0x40) {
+			for (uint8_t i = 0; i < 8; i++) {
+				writeByte(btn.arr[i]);
+			}
+			writeStop();
+		}
+
+		// origin cmd
+		else if (cmd.command == 0x41) {
+			btn.orig = 0b0u;
+			for (uint8_t i = 0; i < 10; i++) {
+				writeByte(btn.arr[i]);
+			}
+			writeStop();
+		}
+
+		// init / reset cmd
+		else if (cmd.command == 0x00 || cmd.command == 0xff) {
+			for (uint8_t i = 0; i < 3; i++) {
+				writeByte(id.arr3[i]);
+			}
+			writeStop();
+		}
+		pinMode(LINE, INPUT);
+	}
+
+// reads button state and stores in btn struct/array
+// assumes all button pinmodes are INPUT_PULLUP
+void VelocityGC::readBtns(){
+    // digital buttons
+    btn.A = readBtn(btn_A);
+    btn.B = readBtn(btn_B);
+    btn.X = readBtn(btn_X);
+    btn.Y = readBtn(btn_Y);
+    btn.L = readBtn(btn_L);
+    btn.R = readBtn(btn_R);
+    btn.Z = readBtn(btn_Z);
+    btn.S = readBtn(btn_S);
+    btn.Du = readBtn(btn_Du);
+    btn.Dd = readBtn(btn_Dd);
+    btn.Dl = readBtn(btn_Dl);
+    btn.Dr = readBtn(btn_Dr);
+
+    // trigger light press DAC
+    btn.La = readBtn(btn_La) ? 0x80u : 0x00u;
+    btn.Ra = readBtn(btn_Ra) ? 0x80u : 0x00u;
+
+    // Analog stick X axis
+    if (readBtn(btn_Al)) {
+        btn.Ax = readBtn(btn_Ar) ? 0x80u : 0x00u;
+    }
+    else if (readBtn(btn_Ar)) {
+        btn.Ax = 0xffu;
+    }
+    else {
+        btn.Ax = 0x80u;
+    }
+    
+    // Analog stick Y axis
+    if (readBtn(btn_Ad)) {
+        btn.Ay = readBtn(btn_Au) ? 0x80u : 0x00u;
+    }
+    else if (readBtn(btn_Au)) {
+        btn.Ay = 0xffu;
+    }
+    else {
+        btn.Ay = 0x80u;
+    }
+
+    // C stick X axis
+    if (readBtn(btn_Cl)) {
+        btn.Cx = readBtn(btn_Cr) ? 0x80u : 0x00u;
+    }
+    else if (readBtn(btn_Cr)) {
+        btn.Cx = 0xffu;
+    }
+    else {
+        btn.Cx = 0x80u;
+    }
+
+    // C stick Y axis
+    if (readBtn(btn_Cd)) {
+        btn.Cy = readBtn(btn_Cu) ? 0x80u : 0x00u;
+    }
+    else if (readBtn(btn_Cu)) {
+        btn.Cy = 0xffu;
+    }
+    else {
+        btn.Cy = 0x80u;
+    }
+}
