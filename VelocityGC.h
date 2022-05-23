@@ -41,13 +41,13 @@ union Buttons{
 }btn;
 
 union ID { 
-    uint8_t arr3[3] = { 0x09,0x00,0x00 };
+    uint8_t arr3[3] = { 0x09,0x00,0x00}; //last one might be 0x03???? 
     struct {
         uint8_t byt1 : 8;
         uint8_t byt2 : 8;
         uint8_t byt3 : 8;
-    };
-}id;
+    }id;
+};
 
 struct CMD {
     uint8_t command : 8;
@@ -62,9 +62,9 @@ class VelocityGC {
     private:
             
             static void initCounter();
-            static void initGroup(uint8_t group);
             void initBtns();
             static void initLines();
+            
             static bool readBit();
             static void writeBit(bool bt /* bit to be written */);
              

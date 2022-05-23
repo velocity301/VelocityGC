@@ -1,4 +1,6 @@
+#pragma once
 #include "VelocityGC.h"
+#include "VelocityGC.cpp"
 
 VelocityGC Controller;
 

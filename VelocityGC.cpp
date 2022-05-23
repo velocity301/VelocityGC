@@ -1,8 +1,9 @@
 #pragma once
 #include "VelocityGC.h"
+#include "ButtonDefines.h"
+#include "BackendMacros.h"
 
 void VelocityGC::init(){
-    //cli();  //idk what this is
     initCounter();
     initBtns();
     initLines();
@@ -14,7 +15,7 @@ void VelocityGC::readWrite(){
     write();
 }
 
-// sets up cpu cycle counter register make sure to check this for teensy 3.2
+// sets up cpu cycle counter register
 void VelocityGC::initCounter(){
     {
         ARM_DEMCR |= ARM_DEMCR_TRCENA;
@@ -22,18 +23,13 @@ void VelocityGC::initCounter(){
     }
 }
 
-void VelocityGC::initGroup(uint8_t group){
-    {
-        for (uint8_t i = 0; i < 5; i++) {
-            pinMode((i+group), INPUT_PULLUP); // this needs to be rewritten without groups
-        }   
-    }
-}
 void VelocityGC::initBtns()
             {
-                initGroup(GL); //needs to be rewritten without groups
-                initGroup(GM);
-                initGroup(GR);
+                //initialize A, B, X, Y, S, Dl, Dr, Dd, Du, Z, R, L
+                for (int i = 2; i <= 13; i++){
+                    pinMode(i, INPUT_PULLUP);
+                } 
+
                 btn.high = 0b1u;
                 btn.orig = 0b0u;
                 btn.errL = 0b0u;
@@ -44,13 +40,11 @@ void VelocityGC::initBtns()
                 btn.Cy = 0x80u;
                 btn.magic1 = 0x02u;
                 btn.magic2 = 0x02u;
-                pinMode(HP, INPUT_PULLUP);
-
             }
 
 // sets pin modes for gamecube controller data line
-void VelocityGC::initLines(){
-                pinMode(LINE, INPUT);   
+void VelocityGC::initLines(){ //TODO: check this shit
+                pinMode(LINE, INPUT);
 }    
 
 bool VelocityGC::readBit(){
@@ -61,12 +55,12 @@ bool VelocityGC::readBit(){
     while(!digitalReadFast(LINE)) {
         //bit value is determined by how long LINE is held LOW by the console
     }
-    return elapsedCycles() < _halfbit;
+    return elapsedCycles() < _halfBit;
 }
 
 // writes 1 bit to LINE
 // (assumes LINE is already OUTPUT)
-void VelocityGC::writeBit(bool /* bit to be written */){
+void VelocityGC::writeBit(bool bt /* bit to be written */){
     markCycle();// record CPU cycle of the start of the bit
     if (bt) {
         digitalWriteFast(LINE, LOW);
@@ -198,50 +192,50 @@ void VelocityGC::readBtns(){
     btn.Dr = readBtn(btn_Dr);
 
     // trigger light press DAC
-    btn.La = readBtn(btn_La) ? 0x80u : 0x00u;
-    btn.Ra = readBtn(btn_Ra) ? 0x80u : 0x00u;
+    btn.La = readBtn(btn_La); //? 0x80u : 0x00u;
+    btn.Ra = readBtn(btn_Ra); //? 0x80u : 0x00u;
 
     // Analog stick X axis
-    if (readBtn(btn_Al)) {
-        btn.Ax = readBtn(btn_Ar) ? 0x80u : 0x00u;
-    }
-    else if (readBtn(btn_Ar)) {
-        btn.Ax = 0xffu;
-    }
-    else {
-        btn.Ax = 0x80u;
-    }
+    // if (readBtn(btn_Al)) {
+        btn.Ax = readBtn(btn_Ar); //? 0x80u : 0x00u;
+    // }
+    // else if (readBtn(btn_Ar)) {
+    //     btn.Ax = 0xffu;
+    // }
+    // else {
+    //     btn.Ax = 0x80u;
+    // }
     
     // Analog stick Y axis
-    if (readBtn(btn_Ad)) {
-        btn.Ay = readBtn(btn_Au) ? 0x80u : 0x00u;
-    }
-    else if (readBtn(btn_Au)) {
-        btn.Ay = 0xffu;
-    }
-    else {
-        btn.Ay = 0x80u;
-    }
+    // if (readBtn(btn_Ad)) {
+        btn.Ay = readBtn(btn_Au); //? 0x80u : 0x00u;
+    // }
+    // else if (readBtn(btn_Au)) {
+    //     btn.Ay = 0xffu;
+    // }
+    // else {
+    //     btn.Ay = 0x80u;
+    // }
 
     // C stick X axis
-    if (readBtn(btn_Cl)) {
-        btn.Cx = readBtn(btn_Cr) ? 0x80u : 0x00u;
-    }
-    else if (readBtn(btn_Cr)) {
-        btn.Cx = 0xffu;
-    }
-    else {
-        btn.Cx = 0x80u;
-    }
+    // if (readBtn(btn_Cl)) {
+        btn.Cx = readBtn(btn_Cr); // ? 0x80u : 0x00u;
+    // }
+    // else if (readBtn(btn_Cr)) {
+    //     btn.Cx = 0xffu;
+    // }
+    // else {
+    //     btn.Cx = 0x80u;
+    // }
 
     // C stick Y axis
-    if (readBtn(btn_Cd)) {
-        btn.Cy = readBtn(btn_Cu) ? 0x80u : 0x00u;
-    }
-    else if (readBtn(btn_Cu)) {
-        btn.Cy = 0xffu;
-    }
-    else {
-        btn.Cy = 0x80u;
-    }
+    // if (readBtn(btn_Cd)) {
+        btn.Cy = readBtn(btn_Cu);// ? 0x80u : 0x00u;
+    // }
+    // else if (readBtn(btn_Cu)) {
+    //     btn.Cy = 0xffu;
+    // }
+    // else {
+    //     btn.Cy = 0x80u;
+    // }
 }
