@@ -4,6 +4,7 @@
 #define LINE 23
 
 #define readBtn(button) (!digitalReadFast(button))
+#define readAnalog(button) (!analogReadFast(button))
 
 // screen receive and transmit pins
 #define SRX 0

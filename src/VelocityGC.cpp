@@ -46,7 +46,7 @@ void VelocityGC::initBtns()
 void VelocityGC::initLines(){ //TODO: check this shit
                 pinMode(LINE, INPUT);
 }    
-
+//TODO: Rewrite this to work with analogReadFast if the pin number matches an analog read pin
 bool VelocityGC::readBit(){
     while (digitalReadFast(LINE)) { 
         //start of bit starts on falling edge
@@ -191,51 +191,13 @@ void VelocityGC::readBtns(){
     btn.Dl = readBtn(btn_Dl);
     btn.Dr = readBtn(btn_Dr);
 
-    // trigger light press DAC
-    btn.La = readBtn(btn_La); //? 0x80u : 0x00u;
-    btn.Ra = readBtn(btn_Ra); //? 0x80u : 0x00u;
+    // read analog buttons
+    btn.La = readAnalog(btn_La); 
+    btn.Ra = readAnalog(btn_Ra);
+    btn.Ax = readAnalog(btn_Ax);
+    btn.Ay = readAnalog(btn_Ay);
+    btn.Cx = readAnalog(btn_Cx);
+    btn.Cy = readAnalog(btn_Cy);
 
-    // Analog stick X axis
-    // if (readBtn(btn_Al)) {
-        btn.Ax = readBtn(btn_Ar); //? 0x80u : 0x00u;
-    // }
-    // else if (readBtn(btn_Ar)) {
-    //     btn.Ax = 0xffu;
-    // }
-    // else {
-    //     btn.Ax = 0x80u;
-    // }
     
-    // Analog stick Y axis
-    // if (readBtn(btn_Ad)) {
-        btn.Ay = readBtn(btn_Au); //? 0x80u : 0x00u;
-    // }
-    // else if (readBtn(btn_Au)) {
-    //     btn.Ay = 0xffu;
-    // }
-    // else {
-    //     btn.Ay = 0x80u;
-    // }
-
-    // C stick X axis
-    // if (readBtn(btn_Cl)) {
-        btn.Cx = readBtn(btn_Cr); // ? 0x80u : 0x00u;
-    // }
-    // else if (readBtn(btn_Cr)) {
-    //     btn.Cx = 0xffu;
-    // }
-    // else {
-    //     btn.Cx = 0x80u;
-    // }
-
-    // C stick Y axis
-    // if (readBtn(btn_Cd)) {
-        btn.Cy = readBtn(btn_Cu);// ? 0x80u : 0x00u;
-    // }
-    // else if (readBtn(btn_Cu)) {
-    //     btn.Cy = 0xffu;
-    // }
-    // else {
-    //     btn.Cy = 0x80u;
-    // }
 }

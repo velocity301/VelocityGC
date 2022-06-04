@@ -27,7 +27,7 @@ union Buttons{
         uint8_t high : 1;
 
         //byte 2-7
-        uint8_t Ax : 8;
+        uint8_t Ax : 8; 
         uint8_t Ay : 8;
         uint8_t Cx : 8;
         uint8_t Cy : 8;

@@ -1,9 +1,16 @@
-#include <Arduino.h>
+#include "VelocityGC.h"
+#include "VelocityGC.cpp"
 
-void setup() {
-  // put your setup code here, to run once:
+VelocityGC Controller;
+
+void setup()
+{
+  Controller.init();
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
+void loop()
+{
+  Controller.readBtns();
+  Controller.readCmd();
+  Controller.write();
 }
