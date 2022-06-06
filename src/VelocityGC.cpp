@@ -67,6 +67,7 @@ void VelocityGC::writeBit(bool bt /* bit to be written */){
         while (elapsedCycles() < _quarterBit){
             //hold Line Low for 1/4 (1us) of the bit
         }
+        markCycle();
         digitalWriteFast(LINE, HIGH);
         while (elapsedCycles()< _oneBit) {
             // hold LINE HIGH for the rest of the bit
@@ -78,6 +79,7 @@ void VelocityGC::writeBit(bool bt /* bit to be written */){
         while(elapsedCycles() < _threeqBit) {
             // hold LINE LOW for 3/4 (3us) of the bit
         }
+        markCycle();
         digitalWriteFast(LINE,HIGH);
         while (elapsedCycles() < _oneBit){
             // hold LINE HIGH for the rest of the bit
@@ -92,6 +94,7 @@ void VelocityGC::writeStop(){
     while (elapsedCycles() < _halfBit) {
         //hold LINE LOW for 1/2 (2us) of the bit
     }
+    markCycle();
     digitalWriteFast(LINE,HIGH);
     while (elapsedCycles() < _halfBit){
         //hold LINE HIGH for 1/2 (2us) of the bit
