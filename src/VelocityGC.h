@@ -46,8 +46,8 @@ union ID {
         uint8_t byt1 : 8;
         uint8_t byt2 : 8;
         uint8_t byt3 : 8;
-    }id;
-};
+    };
+}id;
 
 struct CMD {
     uint8_t command : 8;

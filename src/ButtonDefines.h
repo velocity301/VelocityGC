@@ -10,15 +10,6 @@
 #define SRX 0
 #define STX 1
 
-// 3 groups of 5 buttons
-// first pin of each
-//#define GL 2	// left group
-//#define GM 7	// middle group
-//#define GR 14	// right group
-
-// always high pin for unused action binds
-//#define HP 19
-
 // BIND YOUR BUTTONS HERE
 
 #define btn_A	(2)
