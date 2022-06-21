@@ -1,5 +1,6 @@
 #pragma once
 #include "stdint.h"
+#include <digitalWriteFast.h>
 #include "BackendMacros.h"
 #include "ButtonDefines.h"
 
